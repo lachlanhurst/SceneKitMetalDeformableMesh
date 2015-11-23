@@ -13,6 +13,9 @@
 		73707E561C01D0F800A569AA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 73707E541C01D0F800A569AA /* Main.storyboard */; };
 		73707E581C01D0F800A569AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73707E571C01D0F800A569AA /* Assets.xcassets */; };
 		73707E5B1C01D0F800A569AA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 73707E591C01D0F800A569AA /* LaunchScreen.storyboard */; };
+		73707E631C01D2BF00A569AA /* MetalMeshDeformable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73707E621C01D2BF00A569AA /* MetalMeshDeformable.swift */; };
+		73707E651C02D3F900A569AA /* SCNVector3Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73707E641C02D3F900A569AA /* SCNVector3Extensions.swift */; };
+		73707E671C02D8E300A569AA /* DeformCompute.metal in Sources */ = {isa = PBXBuildFile; fileRef = 73707E661C02D8E300A569AA /* DeformCompute.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +27,9 @@
 		73707E571C01D0F800A569AA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		73707E5A1C01D0F800A569AA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		73707E5C1C01D0F800A569AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		73707E621C01D2BF00A569AA /* MetalMeshDeformable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetalMeshDeformable.swift; sourceTree = "<group>"; };
+		73707E641C02D3F900A569AA /* SCNVector3Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCNVector3Extensions.swift; sourceTree = "<group>"; };
+		73707E661C02D8E300A569AA /* DeformCompute.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = DeformCompute.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +62,7 @@
 		73707E4D1C01D0F800A569AA /* DeformableMesh */ = {
 			isa = PBXGroup;
 			children = (
+				73707E641C02D3F900A569AA /* SCNVector3Extensions.swift */,
 				73707E4E1C01D0F800A569AA /* AppDelegate.swift */,
 				73707E501C01D0F800A569AA /* art.scnassets */,
 				73707E521C01D0F800A569AA /* GameViewController.swift */,
@@ -63,6 +70,8 @@
 				73707E571C01D0F800A569AA /* Assets.xcassets */,
 				73707E591C01D0F800A569AA /* LaunchScreen.storyboard */,
 				73707E5C1C01D0F800A569AA /* Info.plist */,
+				73707E621C01D2BF00A569AA /* MetalMeshDeformable.swift */,
+				73707E661C02D8E300A569AA /* DeformCompute.metal */,
 			);
 			path = DeformableMesh;
 			sourceTree = "<group>";
@@ -139,8 +148,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				73707E631C01D2BF00A569AA /* MetalMeshDeformable.swift in Sources */,
+				73707E671C02D8E300A569AA /* DeformCompute.metal in Sources */,
 				73707E531C01D0F800A569AA /* GameViewController.swift in Sources */,
 				73707E4F1C01D0F800A569AA /* AppDelegate.swift in Sources */,
+				73707E651C02D3F900A569AA /* SCNVector3Extensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

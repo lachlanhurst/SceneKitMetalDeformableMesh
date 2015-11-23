@@ -10,96 +10,125 @@ import UIKit
 import QuartzCore
 import SceneKit
 
-class GameViewController: UIViewController {
+class GameViewController: UIViewController, SCNSceneRendererDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        setupMetal()
+        deformer = MetalMeshDeformer(device: device)
         
-        // create and add a camera to the scene
-        let cameraNode = SCNNode()
-        cameraNode.camera = SCNCamera()
-        scene.rootNode.addChildNode(cameraNode)
+        let scene = SCNScene()
         
-        // place the camera
-        cameraNode.position = SCNVector3(x: 0, y: 0, z: 15)
+        meshData = MetalMeshDeformable.buildPlane(device)
+        let planeNode = SCNNode(geometry: meshData.geometry)
         
-        // create and add a light to the scene
-        let lightNode = SCNNode()
-        lightNode.light = SCNLight()
-        lightNode.light!.type = SCNLightTypeOmni
-        lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
-        scene.rootNode.addChildNode(lightNode)
+        var trans = SCNMatrix4Identity
+        trans = SCNMatrix4Rotate(trans, Float(M_PI)/2, 1, 0, 0)
+        planeNode.transform = trans
         
-        // create and add an ambient light to the scene
-        let ambientLightNode = SCNNode()
-        ambientLightNode.light = SCNLight()
-        ambientLightNode.light!.type = SCNLightTypeAmbient
-        ambientLightNode.light!.color = UIColor.darkGrayColor()
-        scene.rootNode.addChildNode(ambientLightNode)
+        scene.rootNode.addChildNode(planeNode)
         
-        // retrieve the ship node
-        let ship = scene.rootNode.childNodeWithName("ship", recursively: true)!
-        
-        // animate the 3d object
-        ship.runAction(SCNAction.repeatActionForever(SCNAction.rotateByX(0, y: 2, z: 0, duration: 1)))
-        
-        // retrieve the SCNView
         let scnView = self.view as! SCNView
-        
-        // set the scene to the view
+        scnView.delegate = self
         scnView.scene = scene
-        
-        // allows the user to manipulate the camera
         scnView.allowsCameraControl = true
-        
-        // show statistics such as fps and timing information
         scnView.showsStatistics = true
+        scnView.backgroundColor = UIColor.lightGrayColor()
+        scnView.autoenablesDefaultLighting = true
+        scnView.playing = true
         
-        // configure the view
-        scnView.backgroundColor = UIColor.blackColor()
-        
-        // add a tap gesture recognizer
-        let tapGesture = UITapGestureRecognizer(target: self, action: "handleTap:")
-        scnView.addGestureRecognizer(tapGesture)
+        //scnView.debugOptions = SCNDebugOptions.ShowWireframe
+
     }
     
-    func handleTap(gestureRecognize: UIGestureRecognizer) {
-        // retrieve the SCNView
+    var deformData:DeformData? = nil
+    var meshData:MetalMeshData!
+    
+    var deformer:MetalMeshDeformer!
+    
+    var device:MTLDevice!
+    var threadsPerGroup:MTLSize!
+    var numThreadgroups: MTLSize!
+    var pipelineState: MTLComputePipelineState!
+    var defaultLibrary: MTLLibrary! = nil
+    var commandQueue: MTLCommandQueue! = nil
+    
+    func renderer(renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: NSTimeInterval) {
+        
+        guard let deformData = self.deformData else {
+            return
+        }
+        
+        
+        deformer.deform(meshData, deformData: deformData)
+        
+        
+        self.deformData = nil
+    }
+    
+    
+    func setupMetal() {
+        let scnView = self.view as! SCNView
+        device = scnView.device
+    }
+    
+    func cameraZaxis(view:SCNView) -> SCNVector3 {
+        let cameraMat = view.pointOfView!.transform
+        return SCNVector3Make(cameraMat.m31, cameraMat.m32, cameraMat.m33) * -1
+    }
+    
+    
+    var isDeforming = false
+    
+    override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
         let scnView = self.view as! SCNView
         
-        // check what nodes are tapped
-        let p = gestureRecognize.locationInView(scnView)
-        let hitResults = scnView.hitTest(p, options: nil)
-        // check that we clicked on at least one object
-        if hitResults.count > 0 {
-            // retrieved the first clicked object
-            let result: AnyObject! = hitResults[0]
-            
-            // get its material
-            let material = result.node!.geometry!.firstMaterial!
-            
-            // highlight it
-            SCNTransaction.begin()
-            SCNTransaction.setAnimationDuration(0.5)
-            
-            // on completion - unhighlight
-            SCNTransaction.setCompletionBlock {
-                SCNTransaction.begin()
-                SCNTransaction.setAnimationDuration(0.5)
-                
-                material.emission.contents = UIColor.blackColor()
-                
-                SCNTransaction.commit()
-            }
-            
-            material.emission.contents = UIColor.redColor()
-            
-            SCNTransaction.commit()
+        let p = touches.first!.locationInView(scnView)
+        let hitResults = scnView.hitTest(p, options: [SCNHitTestFirstFoundOnlyKey:1])
+        isDeforming = hitResults.count > 0
+        
+        if isDeforming {
+            scnView.gestureRecognizers?.forEach {$0.enabled = false}
         }
     }
+    
+    override func touchesEnded(touches: Set<UITouch>, withEvent event: UIEvent?) {
+        
+        let scnView = self.view as! SCNView
+        isDeforming = false
+        scnView.gestureRecognizers?.forEach {$0.enabled = true}
+        
+    }
+    
+    
+    override func touchesMoved(touches: Set<UITouch>, withEvent event: UIEvent?) {
+        let scnView = self.view as! SCNView
+        
+        let p = touches.first!.locationInView(scnView)
+        let hitResults = scnView.hitTest(p, options: [SCNHitTestFirstFoundOnlyKey:1])
+        if hitResults.count > 0 && isDeforming {
+            
+            
+            let result = hitResults.first!
+            
+            let loc = SCNVector3ToFloat3(result.localCoordinates)
+            
+            let globalDir = self.cameraZaxis(scnView) * -1
+            let localDir  = result.node.convertPosition(globalDir, fromNode: nil)
+            
+            let dir = SCNVector3ToFloat3(localDir)
+            
+            let dd = DeformData(location:loc, direction:dir, radiusSquared:16.0, deformationAmplitude: 1.5)
+            self.deformData = dd
+
+            /*print("coords = ",result.localCoordinates)
+            print("normal = ",result.localNormal)
+            print("camera axis = ", self.cameraZaxis(scnView))
+            print("") */
+        }
+    }
+
     
     override func shouldAutorotate() -> Bool {
         return true
@@ -119,7 +148,6 @@ class GameViewController: UIViewController {
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Release any cached data, images, etc that aren't in use.
     }
 
 }

@@ -2,9 +2,25 @@
 //  MetalMeshDeformable.swift
 //  DeformableMesh
 //
-//  Created by Lachlan Hurst on 22/11/2015.
-//  Copyright © 2015 Lachlan Hurst. All rights reserved.
+// Copyright (c) 2015 Lachlan Hurst
 //
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
 
 import Foundation
 import SceneKit
@@ -41,7 +57,12 @@ class MetalMeshData {
     
 }
 
+/*
+Encapsulate the 'Metal stuff' within a single class to handle setup and execution
+of the compute shaders.
+*/
 class MetalMeshDeformer {
+    
     let device:MTLDevice
     
     var commandQueue:MTLCommandQueue!
@@ -70,6 +91,13 @@ class MetalMeshDeformer {
     }
     
     func getBestThreadCount(count:Int) -> Int {
+        /*
+        The normal compute shader hangs the app if the total thread count doesn't match
+        the number of faces (3 vertexes). So use this method to get the highest multiple
+        of both 3 and the vertex count. Obviously you'll get better performance if the
+        mesh vertex count is divisible by 30.
+        */
+        //TODO - make this better
         
         if (count % 30 == 0) {
             return 30
@@ -95,6 +123,13 @@ class MetalMeshDeformer {
     }
     
     func deform(mesh:MetalMeshData, var deformData:DeformData) {
+        
+        //
+        // First compute shader
+        //    - Calculates deformed vertex coordinates
+        //    - input in vertexBuffer1
+        //    - output in vertexBuffer2
+        //
         let computeCommandBuffer = commandQueue.commandBuffer()
         let computeCommandEncoder = computeCommandBuffer.computeCommandEncoder()
         
@@ -114,8 +149,6 @@ class MetalMeshDeformer {
         computeCommandEncoder.dispatchThreadgroups(numThreadgroups, threadsPerThreadgroup: threadsPerGroup)
         computeCommandEncoder.endEncoding()
         computeCommandBuffer.commit()
-
-        //computeCommandBuffer.waitUntilScheduled()
         
         /*
         let blitCommandBuffer = commandQueue.commandBuffer()
@@ -128,6 +161,12 @@ class MetalMeshDeformer {
         */
         
         
+        //
+        // Second compute shader
+        //    - Calculates normals for deformed vertex locations in vertexBuffer2
+        //    - outputs normals to normalBuffer
+        //    - also copies deformed vertex locations back to vertexBuffer1 (from 2)
+        //
         let normalComputeCommandBuffer = commandQueue.commandBuffer()
         let normalComputeCommandEncoder = normalComputeCommandBuffer.computeCommandEncoder()
         
@@ -169,18 +208,16 @@ class MetalMeshDeformer {
 }
 
 
-
+/*
+Builds a SceneKit geometry object backed by a Metal buffer
+*/
 class MetalMeshDeformable {
     
-    class func buildPlane(device:MTLDevice) -> MetalMeshData {
+    class func buildPlane(device:MTLDevice, width:Float, length:Float, step:Float) -> MetalMeshData {
         
         var pointsList: [vector_float3] = []
         var normalsList: [vector_float3] = []
         var indexList: [CInt] = []
-        
-        let length:Float = 70
-        let width:Float = 150
-        let step:Float = 1
         
         let normal = vector_float3(0, 1, 0)
         
@@ -231,6 +268,8 @@ class MetalMeshDeformable {
         }
         
         let vertexFormat = MTLVertexFormat.Float3
+        //metal compute shaders cant read and write to same buffer, so make two of them
+        //second one could be empty in this case
         let vertexBuffer1 = device.newBufferWithBytes(&pointsList, length: pointsList.count * sizeof(vector_float3), options: .OptionCPUCacheModeDefault)
         let vertexBuffer2 = device.newBufferWithBytes(&pointsList, length: pointsList.count * sizeof(vector_float3), options: .OptionCPUCacheModeDefault)
         

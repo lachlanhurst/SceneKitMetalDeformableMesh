@@ -2,9 +2,25 @@
 //  GameViewController.swift
 //  DeformableMesh
 //
-//  Created by Lachlan Hurst on 22/11/2015.
-//  Copyright (c) 2015 Lachlan Hurst. All rights reserved.
+// Copyright (c) 2015 Lachlan Hurst
 //
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
 
 import UIKit
 import QuartzCore
@@ -12,26 +28,59 @@ import SceneKit
 
 class GameViewController: UIViewController, SCNSceneRendererDelegate {
 
+    var deformData:DeformData? = nil
+    var planeNode:SCNNode? = nil
+    var meshData:MetalMeshData!
+    
+    var deformer:MetalMeshDeformer!
+    
+    //plane's mesh params
+    let length:Float = 70
+    let width:Float = 150
+    let step:Float = 1
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        setupMetal()
-        deformer = MetalMeshDeformer(device: device)
+        let scnView = self.view as! SCNView
+        
+        deformer = MetalMeshDeformer(device: scnView.device!)
         
         let scene = SCNScene()
-        
-        meshData = MetalMeshDeformable.buildPlane(device)
-        let planeNode = SCNNode(geometry: meshData.geometry)
-        
-        var trans = SCNMatrix4Identity
-        trans = SCNMatrix4Rotate(trans, Float(M_PI)/2, 1, 0, 0)
-        planeNode.transform = trans
-        
-        scene.rootNode.addChildNode(planeNode)
-        
-        let scnView = self.view as! SCNView
-        scnView.delegate = self
         scnView.scene = scene
+        
+        newMesh()
+        
+        let spotLight = SCNLight()
+        spotLight.type = SCNLightTypeSpot
+        spotLight.color = UIColor.whiteColor()
+        spotLight.zNear = 100.0
+        spotLight.zFar = 1000.0
+        spotLight.castsShadow = true
+        spotLight.shadowBias = 5
+        spotLight.spotOuterAngle = 55
+        spotLight.spotOuterAngle = 75
+        let spotLightNode = SCNNode()
+        spotLightNode.light = spotLight
+        
+        var spotLightTransform = SCNMatrix4Identity
+        spotLightTransform = SCNMatrix4Translate(spotLightTransform, width/2,-length/2,400)
+        spotLightTransform = SCNMatrix4Rotate(spotLightTransform, 60 * Float(M_PI)/180, 0, 1, 0)
+        spotLightNode.transform = spotLightTransform
+        
+        scene.rootNode.addChildNode(spotLightNode)
+        
+        
+        let ambientLight = SCNLight()
+        ambientLight.color = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+        ambientLight.type = SCNLightTypeAmbient
+        let ambientLightNode = SCNNode()
+        ambientLightNode.light = ambientLight
+        scene.rootNode.addChildNode(ambientLightNode)
+        
+        
+        
+        scnView.delegate = self
         scnView.allowsCameraControl = true
         scnView.showsStatistics = true
         scnView.backgroundColor = UIColor.lightGrayColor()
@@ -40,19 +89,10 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         
         //scnView.debugOptions = SCNDebugOptions.ShowWireframe
 
+        let tapGesture = UITapGestureRecognizer(target: self, action: "newMesh")
+        tapGesture.numberOfTapsRequired = 2
+        scnView.addGestureRecognizer(tapGesture)
     }
-    
-    var deformData:DeformData? = nil
-    var meshData:MetalMeshData!
-    
-    var deformer:MetalMeshDeformer!
-    
-    var device:MTLDevice!
-    var threadsPerGroup:MTLSize!
-    var numThreadgroups: MTLSize!
-    var pipelineState: MTLComputePipelineState!
-    var defaultLibrary: MTLLibrary! = nil
-    var commandQueue: MTLCommandQueue! = nil
     
     func renderer(renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: NSTimeInterval) {
         
@@ -60,24 +100,15 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
             return
         }
         
-        
         deformer.deform(meshData, deformData: deformData)
         
-        
         self.deformData = nil
-    }
-    
-    
-    func setupMetal() {
-        let scnView = self.view as! SCNView
-        device = scnView.device
     }
     
     func cameraZaxis(view:SCNView) -> SCNVector3 {
         let cameraMat = view.pointOfView!.transform
         return SCNVector3Make(cameraMat.m31, cameraMat.m32, cameraMat.m33) * -1
     }
-    
     
     var isDeforming = false
     
@@ -129,6 +160,26 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         }
     }
 
+    func newMesh() {
+        let scnView = self.view as! SCNView
+        
+        meshData = MetalMeshDeformable.buildPlane(scnView.device!, width: width, length: length, step: step)
+        let newPlaneNode = SCNNode(geometry: meshData.geometry)
+        newPlaneNode.castsShadow = true
+        
+        var trans = SCNMatrix4Identity
+        trans = SCNMatrix4Rotate(trans, Float(M_PI)/2, 1, 0, 0)
+        newPlaneNode.transform = trans
+
+        if let existingNode = planeNode {
+            scnView.scene?.rootNode.replaceChildNode(existingNode, with: newPlaneNode)
+        } else {
+            scnView.scene?.rootNode.addChildNode(newPlaneNode)
+        }
+        planeNode = newPlaneNode
+        
+    }
+    
     
     override func shouldAutorotate() -> Bool {
         return true

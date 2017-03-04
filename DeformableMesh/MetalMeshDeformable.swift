@@ -23,6 +23,7 @@
 // THE SOFTWARE.
 
 import Foundation
+import Metal
 import SceneKit
 import UIKit
 
@@ -31,6 +32,8 @@ struct DeformData {
     var direction:vector_float3
     var radiusSquared:Float32
     var deformationAmplitude:Float32
+    var pad1:Float32
+    var pad2:Float32
 }
 
 
@@ -78,19 +81,19 @@ class MetalMeshDeformer {
     }
 
     func setupMetal() {
-        commandQueue = device.newCommandQueue()
+        commandQueue = device.makeCommandQueue()
         
         defaultLibrary = device.newDefaultLibrary()
-        functionVertex = defaultLibrary.newFunctionWithName("deformVertex")
-        functionNormal = defaultLibrary.newFunctionWithName("deformNormal")
+        functionVertex = defaultLibrary.makeFunction(name: "deformVertex")
+        functionNormal = defaultLibrary.makeFunction(name: "deformNormal")
         
         do {
-            pipelineStateVertex = try! device.newComputePipelineStateWithFunction(functionVertex)
-            pipelineStateNormal = try! device.newComputePipelineStateWithFunction(functionNormal)
+            pipelineStateVertex = try! device.makeComputePipelineState(function: functionVertex)
+            pipelineStateNormal = try! device.makeComputePipelineState(function: functionNormal)
         }
     }
     
-    func getBestThreadCount(count:Int) -> Int {
+    func getBestThreadCount(_ count:Int) -> Int {
         /*
         The normal compute shader hangs the app if the total thread count doesn't match
         the number of faces (3 vertexes). So use this method to get the highest multiple
@@ -122,7 +125,8 @@ class MetalMeshDeformer {
         }
     }
     
-    func deform(mesh:MetalMeshData, var deformData:DeformData) {
+    func deform(_ mesh:MetalMeshData, deformData:DeformData) {
+        var deformData = deformData
         
         //
         // First compute shader
@@ -130,15 +134,15 @@ class MetalMeshDeformer {
         //    - input in vertexBuffer1
         //    - output in vertexBuffer2
         //
-        let computeCommandBuffer = commandQueue.commandBuffer()
-        let computeCommandEncoder = computeCommandBuffer.computeCommandEncoder()
+        let computeCommandBuffer = commandQueue.makeCommandBuffer()
+        let computeCommandEncoder = computeCommandBuffer.makeComputeCommandEncoder()
         
         computeCommandEncoder.setComputePipelineState(pipelineStateVertex)
 
-        computeCommandEncoder.setBuffer(mesh.vertexBuffer1, offset: 0, atIndex: 0)
-        computeCommandEncoder.setBuffer(mesh.vertexBuffer2, offset: 0, atIndex: 1)
-        
-        computeCommandEncoder.setBytes(&deformData, length: sizeof(DeformData), atIndex: 2)
+        computeCommandEncoder.setBuffer(mesh.vertexBuffer1, offset: 0, at: 0)
+        computeCommandEncoder.setBuffer(mesh.vertexBuffer2, offset: 0, at: 1)
+
+        computeCommandEncoder.setBytes(&deformData, length: MemoryLayout<DeformData>.size, at: 2)
         
         let count = mesh.vertexCount
         let threadExecutionWidth = pipelineStateVertex.threadExecutionWidth
@@ -167,15 +171,15 @@ class MetalMeshDeformer {
         //    - outputs normals to normalBuffer
         //    - also copies deformed vertex locations back to vertexBuffer1 (from 2)
         //
-        let normalComputeCommandBuffer = commandQueue.commandBuffer()
-        let normalComputeCommandEncoder = normalComputeCommandBuffer.computeCommandEncoder()
+        let normalComputeCommandBuffer = commandQueue.makeCommandBuffer()
+        let normalComputeCommandEncoder = normalComputeCommandBuffer.makeComputeCommandEncoder()
         
         normalComputeCommandEncoder.setComputePipelineState(pipelineStateNormal)
         
-        normalComputeCommandEncoder.setBuffer(mesh.vertexBuffer2, offset: 0, atIndex: 0)
-        normalComputeCommandEncoder.setBuffer(mesh.vertexBuffer1, offset: 0, atIndex: 1)
+        normalComputeCommandEncoder.setBuffer(mesh.vertexBuffer2, offset: 0, at: 0)
+        normalComputeCommandEncoder.setBuffer(mesh.vertexBuffer1, offset: 0, at: 1)
         
-        normalComputeCommandEncoder.setBuffer(mesh.normalBuffer, offset: 0, atIndex: 2)
+        normalComputeCommandEncoder.setBuffer(mesh.normalBuffer, offset: 0, at: 2)
         
         var maxThreads = pipelineStateNormal.threadExecutionWidth - pipelineStateNormal.threadExecutionWidth % 3
         maxThreads = min(mesh.vertexCount, maxThreads)
@@ -213,7 +217,7 @@ Builds a SceneKit geometry object backed by a Metal buffer
 */
 class MetalMeshDeformable {
     
-    class func buildPlane(device:MTLDevice, width:Float, length:Float, step:Float) -> MetalMeshData {
+    class func buildPlane(_ device:MTLDevice, width:Float, length:Float, step:Float) -> MetalMeshData {
         
         var pointsList: [vector_float3] = []
         var normalsList: [vector_float3] = []
@@ -222,12 +226,13 @@ class MetalMeshDeformable {
         let normal = vector_float3(0, 1, 0)
         
         var zPrevious:Float? = nil
-        for var z:Float = 0; z <= length; z=z+step {
+        var z:Float = 0
+        while z <= length {
             
             var xPrevious:Float? = nil
-            for var x:Float = 0; x <= width; x=x+step {
-                
-                if let xPrevious = xPrevious, zPrevious = zPrevious {
+            var x:Float = 0
+            while x <= width {
+                if let xPrevious = xPrevious, let zPrevious = zPrevious {
                     
                     let p0 = vector_float3(xPrevious, 0, zPrevious)
                     let p1 = vector_float3(xPrevious, 0, z)
@@ -262,46 +267,61 @@ class MetalMeshDeformable {
                 }
                 
                 xPrevious = x
+                x=x+step
             }
             
             zPrevious = z
+            z=z+step
         }
         
-        let vertexFormat = MTLVertexFormat.Float3
+        let vertexFormat = MTLVertexFormat.float3
         //metal compute shaders cant read and write to same buffer, so make two of them
         //second one could be empty in this case
-        let vertexBuffer1 = device.newBufferWithBytes(&pointsList, length: pointsList.count * sizeof(vector_float3), options: .OptionCPUCacheModeDefault)
-        let vertexBuffer2 = device.newBufferWithBytes(&pointsList, length: pointsList.count * sizeof(vector_float3), options: .OptionCPUCacheModeDefault)
+        let vertexBuffer1 = device.makeBuffer(
+            bytes: pointsList,
+            length: pointsList.count * MemoryLayout<vector_float3>.size,
+            options: [.cpuCacheModeWriteCombined]
+        )
+        let vertexBuffer2 = device.makeBuffer(
+            bytes: pointsList,
+            length: pointsList.count * MemoryLayout<vector_float3>.size,
+            options: [.cpuCacheModeWriteCombined]
+        )
         
+
         let vertexSource = SCNGeometrySource(
             buffer: vertexBuffer1,
             vertexFormat: vertexFormat,
-            semantic: SCNGeometrySourceSemanticVertex,
+            semantic: SCNGeometrySource.Semantic.vertex,
             vertexCount: pointsList.count,
             dataOffset: 0,
-            dataStride: sizeof(vector_float3))
+            dataStride: MemoryLayout<vector_float3>.size)
         
-        let normalFormat = MTLVertexFormat.Float3
-        let normalBuffer = device.newBufferWithBytes(&normalsList, length: normalsList.count * sizeof(vector_float3), options: .OptionCPUCacheModeDefault)
+        let normalFormat = MTLVertexFormat.float3
+        let normalBuffer = device.makeBuffer(
+            bytes: normalsList,
+            length: normalsList.count * MemoryLayout<vector_float3>.size,
+            options: [.cpuCacheModeWriteCombined]
+        )
 
         let normalSource = SCNGeometrySource(
             buffer: normalBuffer,
             vertexFormat: normalFormat,
-            semantic: SCNGeometrySourceSemanticNormal,
+            semantic: SCNGeometrySource.Semantic.normal,
             vertexCount: normalsList.count,
             dataOffset: 0,
-            dataStride: sizeof(vector_float3))
-        
-        let indexData  = NSData(bytes: indexList, length: sizeof(CInt) * indexList.count)
+            dataStride: MemoryLayout<vector_float3>.size)
+
+        let indexData  = Data(bytes: indexList, count: MemoryLayout<CInt>.size * indexList.count)
         let indexElement = SCNGeometryElement(
             data: indexData,
-            primitiveType: SCNGeometryPrimitiveType.Triangles,
+            primitiveType: SCNGeometryPrimitiveType.triangles,
             primitiveCount: indexList.count/3,
-            bytesPerIndex: sizeof(CInt)
+            bytesPerIndex: MemoryLayout<CInt>.size
         )
         
         let geo = SCNGeometry(sources: [vertexSource,normalSource], elements: [indexElement])
-        geo.firstMaterial?.litPerPixel = false
+        geo.firstMaterial?.isLitPerPixel = false
         
         return MetalMeshData(
             geometry: geo,

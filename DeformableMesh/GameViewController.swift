@@ -22,6 +22,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+import Metal
 import UIKit
 import QuartzCore
 import SceneKit
@@ -31,7 +32,9 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
     var deformData:DeformData? = nil
     var planeNode:SCNNode? = nil
     var meshData:MetalMeshData!
-    
+
+    var device:MTLDevice!
+
     var deformer:MetalMeshDeformer!
     
     //plane's mesh params
@@ -43,8 +46,9 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         super.viewDidLoad()
         
         let scnView = self.view as! SCNView
-        
-        deformer = MetalMeshDeformer(device: scnView.device!)
+
+        device = MTLCreateSystemDefaultDevice()
+        deformer = MetalMeshDeformer(device: device)
         
         let scene = SCNScene()
         scnView.scene = scene
@@ -52,8 +56,8 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         newMesh()
         
         let spotLight = SCNLight()
-        spotLight.type = SCNLightTypeSpot
-        spotLight.color = UIColor.whiteColor()
+        spotLight.type = SCNLight.LightType.spot
+        spotLight.color = UIColor.white
         spotLight.zNear = 100.0
         spotLight.zFar = 1000.0
         spotLight.castsShadow = true
@@ -73,7 +77,7 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         
         let ambientLight = SCNLight()
         ambientLight.color = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
-        ambientLight.type = SCNLightTypeAmbient
+        ambientLight.type = SCNLight.LightType.ambient
         let ambientLightNode = SCNNode()
         ambientLightNode.light = ambientLight
         scene.rootNode.addChildNode(ambientLightNode)
@@ -83,18 +87,18 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         scnView.delegate = self
         scnView.allowsCameraControl = true
         scnView.showsStatistics = true
-        scnView.backgroundColor = UIColor.lightGrayColor()
+        scnView.backgroundColor = UIColor.lightGray
         scnView.autoenablesDefaultLighting = true
-        scnView.playing = true
+        scnView.isPlaying = true
         
         //scnView.debugOptions = SCNDebugOptions.ShowWireframe
 
-        let tapGesture = UITapGestureRecognizer(target: self, action: "newMesh")
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(GameViewController.newMesh))
         tapGesture.numberOfTapsRequired = 2
         scnView.addGestureRecognizer(tapGesture)
     }
     
-    func renderer(renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: NSTimeInterval) {
+    func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
         
         guard let deformData = self.deformData else {
             return
@@ -105,39 +109,39 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         self.deformData = nil
     }
     
-    func cameraZaxis(view:SCNView) -> SCNVector3 {
+    func cameraZaxis(_ view:SCNView) -> SCNVector3 {
         let cameraMat = view.pointOfView!.transform
         return SCNVector3Make(cameraMat.m31, cameraMat.m32, cameraMat.m33) * -1
     }
     
     var isDeforming = false
     
-    override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let scnView = self.view as! SCNView
         
-        let p = touches.first!.locationInView(scnView)
-        let hitResults = scnView.hitTest(p, options: [SCNHitTestFirstFoundOnlyKey:1])
+        let p = touches.first!.location(in: scnView)
+        let hitResults = scnView.hitTest(p, options: [SCNHitTestOption.firstFoundOnly:1])
         isDeforming = hitResults.count > 0
         
         if isDeforming {
-            scnView.gestureRecognizers?.forEach {$0.enabled = false}
+            scnView.gestureRecognizers?.forEach {$0.isEnabled = false}
         }
     }
     
-    override func touchesEnded(touches: Set<UITouch>, withEvent event: UIEvent?) {
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         
         let scnView = self.view as! SCNView
         isDeforming = false
-        scnView.gestureRecognizers?.forEach {$0.enabled = true}
+        scnView.gestureRecognizers?.forEach {$0.isEnabled = true}
         
     }
     
     
-    override func touchesMoved(touches: Set<UITouch>, withEvent event: UIEvent?) {
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         let scnView = self.view as! SCNView
         
-        let p = touches.first!.locationInView(scnView)
-        let hitResults = scnView.hitTest(p, options: [SCNHitTestFirstFoundOnlyKey:1])
+        let p = touches.first!.location(in: scnView)
+        let hitResults = scnView.hitTest(p, options: [SCNHitTestOption.firstFoundOnly:1])
         if hitResults.count > 0 && isDeforming {
             
             
@@ -146,11 +150,11 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
             let loc = SCNVector3ToFloat3(result.localCoordinates)
             
             let globalDir = self.cameraZaxis(scnView) * -1
-            let localDir  = result.node.convertPosition(globalDir, fromNode: nil)
+            let localDir  = result.node.convertPosition(globalDir, from: nil)
             
             let dir = SCNVector3ToFloat3(localDir)
             
-            let dd = DeformData(location:loc, direction:dir, radiusSquared:16.0, deformationAmplitude: 1.5)
+            let dd = DeformData(location:loc, direction:dir, radiusSquared:16.0, deformationAmplitude: 1.5, pad1: 0, pad2: 0)
             self.deformData = dd
 
             /*print("coords = ",result.localCoordinates)
@@ -163,7 +167,7 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
     func newMesh() {
         let scnView = self.view as! SCNView
         
-        meshData = MetalMeshDeformable.buildPlane(scnView.device!, width: width, length: length, step: step)
+        meshData = MetalMeshDeformable.buildPlane(device, width: width, length: length, step: step)
         let newPlaneNode = SCNNode(geometry: meshData.geometry)
         newPlaneNode.castsShadow = true
         
@@ -181,19 +185,19 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
     }
     
     
-    override func shouldAutorotate() -> Bool {
+    override var shouldAutorotate : Bool {
         return true
     }
     
-    override func prefersStatusBarHidden() -> Bool {
+    override var prefersStatusBarHidden : Bool {
         return true
     }
     
-    override func supportedInterfaceOrientations() -> UIInterfaceOrientationMask {
-        if UIDevice.currentDevice().userInterfaceIdiom == .Phone {
-            return .AllButUpsideDown
+    override var supportedInterfaceOrientations : UIInterfaceOrientationMask {
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            return .allButUpsideDown
         } else {
-            return .All
+            return .all
         }
     }
     

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		736CC9CF201FECF600058CC4 /* texture.png in Resources */ = {isa = PBXBuildFile; fileRef = 736CC9CE201FECF600058CC4 /* texture.png */; };
 		73707E4F1C01D0F800A569AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73707E4E1C01D0F800A569AA /* AppDelegate.swift */; };
 		73707E511C01D0F800A569AA /* art.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 73707E501C01D0F800A569AA /* art.scnassets */; };
 		73707E531C01D0F800A569AA /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73707E521C01D0F800A569AA /* GameViewController.swift */; };
@@ -19,6 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		736CC9CE201FECF600058CC4 /* texture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = texture.png; sourceTree = "<group>"; };
 		73707E4B1C01D0F800A569AA /* DeformableMesh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeformableMesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		73707E4E1C01D0F800A569AA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		73707E501C01D0F800A569AA /* art.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; path = art.scnassets; sourceTree = "<group>"; };
@@ -62,6 +64,7 @@
 		73707E4D1C01D0F800A569AA /* DeformableMesh */ = {
 			isa = PBXGroup;
 			children = (
+				736CC9CE201FECF600058CC4 /* texture.png */,
 				73707E641C02D3F900A569AA /* SCNVector3Extensions.swift */,
 				73707E4E1C01D0F800A569AA /* AppDelegate.swift */,
 				73707E501C01D0F800A569AA /* art.scnassets */,
@@ -136,6 +139,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				736CC9CF201FECF600058CC4 /* texture.png in Resources */,
 				73707E511C01D0F800A569AA /* art.scnassets in Resources */,
 				73707E5B1C01D0F800A569AA /* LaunchScreen.storyboard in Resources */,
 				73707E581C01D0F800A569AA /* Assets.xcassets in Resources */,

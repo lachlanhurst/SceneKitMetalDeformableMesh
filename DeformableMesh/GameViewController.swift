@@ -69,7 +69,7 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         
         var spotLightTransform = SCNMatrix4Identity
         spotLightTransform = SCNMatrix4Translate(spotLightTransform, width/2,-length/2,400)
-        spotLightTransform = SCNMatrix4Rotate(spotLightTransform, 60 * Float(M_PI)/180, 0, 1, 0)
+        spotLightTransform = SCNMatrix4Rotate(spotLightTransform, 60 * Float.pi/180, 0, 1, 0)
         spotLightNode.transform = spotLightTransform
         
         scene.rootNode.addChildNode(spotLightNode)
@@ -169,10 +169,11 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         
         meshData = MetalMeshDeformable.buildPlane(device, width: width, length: length, step: step)
         let newPlaneNode = SCNNode(geometry: meshData.geometry)
+        newPlaneNode.geometry?.firstMaterial?.diffuse.contents = UIImage(named: "texture")
         newPlaneNode.castsShadow = true
         
         var trans = SCNMatrix4Identity
-        trans = SCNMatrix4Rotate(trans, Float(M_PI)/2, 1, 0, 0)
+        trans = SCNMatrix4Rotate(trans, Float.pi/2, 1, 0, 0)
         newPlaneNode.transform = trans
 
         if let existingNode = planeNode {

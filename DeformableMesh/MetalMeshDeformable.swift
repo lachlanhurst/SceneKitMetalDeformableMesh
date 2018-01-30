@@ -216,11 +216,16 @@ class MetalMeshDeformer {
 Builds a SceneKit geometry object backed by a Metal buffer
 */
 class MetalMeshDeformable {
-    
+
+    class func normalised2dCoord(_ point:vector_float3, width:Float, length:Float) -> vector_float2 {
+        return vector_float2(point.x / width, point.z / length)
+    }
+
     class func buildPlane(_ device:MTLDevice, width:Float, length:Float, step:Float) -> MetalMeshData {
         
         var pointsList: [vector_float3] = []
         var normalsList: [vector_float3] = []
+        var uvList:[vector_float2] = []
         var indexList: [CInt] = []
         
         let normal = vector_float3(0, 1, 0)
@@ -241,28 +246,34 @@ class MetalMeshDeformable {
                     
                     pointsList.append(p0)
                     normalsList.append(normal)
+                    uvList.append(normalised2dCoord(p0, width:width, length:length))
                     indexList.append(CInt(indexList.count))
                     
                     pointsList.append(p1)
                     normalsList.append(normal)
+                    uvList.append(normalised2dCoord(p1, width:width, length:length))
                     indexList.append(CInt(indexList.count))
                     
                     pointsList.append(p2)
                     normalsList.append(normal)
+                    uvList.append(normalised2dCoord(p2, width:width, length:length))
                     indexList.append(CInt(indexList.count))
                     
                     
                     
                     pointsList.append(p0)
                     normalsList.append(normal)
+                    uvList.append(normalised2dCoord(p0, width:width, length:length))
                     indexList.append(CInt(indexList.count))
                     
                     pointsList.append(p2)
                     normalsList.append(normal)
+                    uvList.append(normalised2dCoord(p2, width:width, length:length))
                     indexList.append(CInt(indexList.count))
                     
                     pointsList.append(p3)
                     normalsList.append(normal)
+                    uvList.append(normalised2dCoord(p3, width:width, length:length))
                     indexList.append(CInt(indexList.count))
                 }
                 
@@ -312,6 +323,21 @@ class MetalMeshDeformable {
             dataOffset: 0,
             dataStride: MemoryLayout<vector_float3>.size)
 
+        let uvFormat = MTLVertexFormat.float2
+        let uvBuffer = device.makeBuffer(
+            bytes: uvList,
+            length: uvList.count * MemoryLayout<vector_float2>.size,
+            options: [.cpuCacheModeWriteCombined]
+        )
+
+        let uvSource = SCNGeometrySource(
+            buffer: uvBuffer,
+            vertexFormat: uvFormat,
+            semantic: SCNGeometrySource.Semantic.texcoord,
+            vertexCount: uvList.count,
+            dataOffset: 0,
+            dataStride: MemoryLayout<vector_float2>.size)
+
         let indexData  = Data(bytes: indexList, count: MemoryLayout<CInt>.size * indexList.count)
         let indexElement = SCNGeometryElement(
             data: indexData,
@@ -320,7 +346,7 @@ class MetalMeshDeformable {
             bytesPerIndex: MemoryLayout<CInt>.size
         )
         
-        let geo = SCNGeometry(sources: [vertexSource,normalSource], elements: [indexElement])
+        let geo = SCNGeometry(sources: [vertexSource, normalSource, uvSource], elements: [indexElement])
         geo.firstMaterial?.isLitPerPixel = false
         
         return MetalMeshData(

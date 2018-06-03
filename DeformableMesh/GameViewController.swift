@@ -147,13 +147,15 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
             
             let result = hitResults.first!
             
-            let loc = SCNVector3ToFloat3(result.localCoordinates)
-            
+//            let loc = SCNVector3ToFloat3(result.localCoordinates)
+			let loc = float3.init(result.localCoordinates)
+			
             let globalDir = self.cameraZaxis(scnView) * -1
             let localDir  = result.node.convertPosition(globalDir, from: nil)
             
-            let dir = SCNVector3ToFloat3(localDir)
-            
+//            let dir = SCNVector3ToFloat3(localDir)
+			let dir = float3.init(localDir)
+			
             let dd = DeformData(location:loc, direction:dir, radiusSquared:16.0, deformationAmplitude: 1.5, pad1: 0, pad2: 0)
             self.deformData = dd
 
@@ -164,7 +166,7 @@ class GameViewController: UIViewController, SCNSceneRendererDelegate {
         }
     }
 
-    func newMesh() {
+    @objc func newMesh() {
         let scnView = self.view as! SCNView
         
         meshData = MetalMeshDeformable.buildPlane(device, width: width, length: length, step: step)

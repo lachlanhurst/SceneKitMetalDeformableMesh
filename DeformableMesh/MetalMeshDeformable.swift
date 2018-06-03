@@ -26,6 +26,7 @@ import Foundation
 import Metal
 import SceneKit
 import UIKit
+import MetalKit
 
 struct DeformData {
     var location:vector_float3
@@ -83,7 +84,7 @@ class MetalMeshDeformer {
     func setupMetal() {
         commandQueue = device.makeCommandQueue()
         
-        defaultLibrary = device.newDefaultLibrary()
+		defaultLibrary = device.makeDefaultLibrary()
         functionVertex = defaultLibrary.makeFunction(name: "deformVertex")
         functionNormal = defaultLibrary.makeFunction(name: "deformNormal")
         
@@ -135,14 +136,14 @@ class MetalMeshDeformer {
         //    - output in vertexBuffer2
         //
         let computeCommandBuffer = commandQueue.makeCommandBuffer()
-        let computeCommandEncoder = computeCommandBuffer.makeComputeCommandEncoder()
+		let computeCommandEncoder = computeCommandBuffer?.makeComputeCommandEncoder()
         
-        computeCommandEncoder.setComputePipelineState(pipelineStateVertex)
+		computeCommandEncoder?.setComputePipelineState(pipelineStateVertex)
 
-        computeCommandEncoder.setBuffer(mesh.vertexBuffer1, offset: 0, at: 0)
-        computeCommandEncoder.setBuffer(mesh.vertexBuffer2, offset: 0, at: 1)
+        computeCommandEncoder?.setBuffer(mesh.vertexBuffer1, offset: 0, index: 0)
+        computeCommandEncoder?.setBuffer(mesh.vertexBuffer2, offset: 0, index: 1)
 
-        computeCommandEncoder.setBytes(&deformData, length: MemoryLayout<DeformData>.size, at: 2)
+        computeCommandEncoder?.setBytes(&deformData, length: MemoryLayout<DeformData>.size, index: 2)
         
         let count = mesh.vertexCount
         let threadExecutionWidth = pipelineStateVertex.threadExecutionWidth
@@ -150,9 +151,9 @@ class MetalMeshDeformer {
         let ntg = Int(ceil(Float(count)/Float(threadExecutionWidth)))
         let numThreadgroups = MTLSize(width: ntg, height:1, depth:1)
         
-        computeCommandEncoder.dispatchThreadgroups(numThreadgroups, threadsPerThreadgroup: threadsPerGroup)
-        computeCommandEncoder.endEncoding()
-        computeCommandBuffer.commit()
+        computeCommandEncoder?.dispatchThreadgroups(numThreadgroups, threadsPerThreadgroup: threadsPerGroup)
+        computeCommandEncoder?.endEncoding()
+		computeCommandBuffer?.commit()
         
         /*
         let blitCommandBuffer = commandQueue.commandBuffer()
@@ -172,14 +173,14 @@ class MetalMeshDeformer {
         //    - also copies deformed vertex locations back to vertexBuffer1 (from 2)
         //
         let normalComputeCommandBuffer = commandQueue.makeCommandBuffer()
-        let normalComputeCommandEncoder = normalComputeCommandBuffer.makeComputeCommandEncoder()
+		let normalComputeCommandEncoder = normalComputeCommandBuffer?.makeComputeCommandEncoder()
         
-        normalComputeCommandEncoder.setComputePipelineState(pipelineStateNormal)
+        normalComputeCommandEncoder?.setComputePipelineState(pipelineStateNormal)
         
-        normalComputeCommandEncoder.setBuffer(mesh.vertexBuffer2, offset: 0, at: 0)
-        normalComputeCommandEncoder.setBuffer(mesh.vertexBuffer1, offset: 0, at: 1)
+        normalComputeCommandEncoder?.setBuffer(mesh.vertexBuffer2, offset: 0, index: 0)
+        normalComputeCommandEncoder?.setBuffer(mesh.vertexBuffer1, offset: 0, index: 1)
         
-        normalComputeCommandEncoder.setBuffer(mesh.normalBuffer, offset: 0, at: 2)
+        normalComputeCommandEncoder?.setBuffer(mesh.normalBuffer, offset: 0, index: 2)
         
         var maxThreads = pipelineStateNormal.threadExecutionWidth - pipelineStateNormal.threadExecutionWidth % 3
         maxThreads = min(mesh.vertexCount, maxThreads)
@@ -187,9 +188,9 @@ class MetalMeshDeformer {
         let bestThreadsPerGroup = getBestThreadCount(mesh.vertexCount)
         let groupCount = mesh.vertexCount / bestThreadsPerGroup
         
-        normalComputeCommandEncoder.dispatchThreadgroups(MTLSizeMake(groupCount,1,1), threadsPerThreadgroup: MTLSizeMake(bestThreadsPerGroup, 1, 1))
-        normalComputeCommandEncoder.endEncoding()
-        normalComputeCommandBuffer.commit()
+        normalComputeCommandEncoder?.dispatchThreadgroups(MTLSizeMake(groupCount,1,1), threadsPerThreadgroup: MTLSizeMake(bestThreadsPerGroup, 1, 1))
+        normalComputeCommandEncoder?.endEncoding()
+		normalComputeCommandBuffer?.commit()
         
         /*
         //debug info
@@ -299,15 +300,14 @@ class MetalMeshDeformable {
             options: [.cpuCacheModeWriteCombined]
         )
         
-
         let vertexSource = SCNGeometrySource(
-            buffer: vertexBuffer1,
+			buffer: vertexBuffer1!,
             vertexFormat: vertexFormat,
             semantic: SCNGeometrySource.Semantic.vertex,
             vertexCount: pointsList.count,
             dataOffset: 0,
             dataStride: MemoryLayout<vector_float3>.size)
-        
+		
         let normalFormat = MTLVertexFormat.float3
         let normalBuffer = device.makeBuffer(
             bytes: normalsList,
@@ -316,7 +316,7 @@ class MetalMeshDeformable {
         )
 
         let normalSource = SCNGeometrySource(
-            buffer: normalBuffer,
+            buffer: normalBuffer!,
             vertexFormat: normalFormat,
             semantic: SCNGeometrySource.Semantic.normal,
             vertexCount: normalsList.count,
@@ -331,7 +331,7 @@ class MetalMeshDeformable {
         )
 
         let uvSource = SCNGeometrySource(
-            buffer: uvBuffer,
+            buffer: uvBuffer!,
             vertexFormat: uvFormat,
             semantic: SCNGeometrySource.Semantic.texcoord,
             vertexCount: uvList.count,
@@ -346,15 +346,15 @@ class MetalMeshDeformable {
             bytesPerIndex: MemoryLayout<CInt>.size
         )
         
-        let geo = SCNGeometry(sources: [vertexSource, normalSource, uvSource], elements: [indexElement])
+		let geo = SCNGeometry(sources: [vertexSource, normalSource, uvSource], elements: [indexElement])
         geo.firstMaterial?.isLitPerPixel = false
         
         return MetalMeshData(
             geometry: geo,
             vertexCount: pointsList.count,
-            vertexBuffer1: vertexBuffer1,
-            vertexBuffer2: vertexBuffer2,
-            normalBuffer: normalBuffer)
+			vertexBuffer1: vertexBuffer1!,
+            vertexBuffer2: vertexBuffer2!,
+            normalBuffer: normalBuffer!)
     }
 
 }

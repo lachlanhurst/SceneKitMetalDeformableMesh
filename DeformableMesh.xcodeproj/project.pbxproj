@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		23C3FC4420C3DE090033581F /* SCNGeometrySource+Additions.m in Sources */ = {isa = PBXBuildFile; fileRef = 23C3FC4320C3DE090033581F /* SCNGeometrySource+Additions.m */; };
 		736CC9CF201FECF600058CC4 /* texture.png in Resources */ = {isa = PBXBuildFile; fileRef = 736CC9CE201FECF600058CC4 /* texture.png */; };
 		73707E4F1C01D0F800A569AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73707E4E1C01D0F800A569AA /* AppDelegate.swift */; };
 		73707E511C01D0F800A569AA /* art.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 73707E501C01D0F800A569AA /* art.scnassets */; };
@@ -21,9 +20,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		23C3FC4120C3DE090033581F /* DeformableMesh-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DeformableMesh-Bridging-Header.h"; sourceTree = "<group>"; };
-		23C3FC4220C3DE090033581F /* SCNGeometrySource+Additions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SCNGeometrySource+Additions.h"; sourceTree = "<group>"; };
-		23C3FC4320C3DE090033581F /* SCNGeometrySource+Additions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "SCNGeometrySource+Additions.m"; sourceTree = "<group>"; };
 		736CC9CE201FECF600058CC4 /* texture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = texture.png; sourceTree = "<group>"; };
 		73707E4B1C01D0F800A569AA /* DeformableMesh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeformableMesh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		73707E4E1C01D0F800A569AA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -79,9 +75,6 @@
 				73707E5C1C01D0F800A569AA /* Info.plist */,
 				73707E621C01D2BF00A569AA /* MetalMeshDeformable.swift */,
 				73707E661C02D8E300A569AA /* DeformCompute.metal */,
-				23C3FC4220C3DE090033581F /* SCNGeometrySource+Additions.h */,
-				23C3FC4320C3DE090033581F /* SCNGeometrySource+Additions.m */,
-				23C3FC4120C3DE090033581F /* DeformableMesh-Bridging-Header.h */,
 			);
 			path = DeformableMesh;
 			sourceTree = "<group>";
@@ -118,7 +111,7 @@
 				TargetAttributes = {
 					73707E4A1C01D0F800A569AA = {
 						CreatedOnToolsVersion = 7.1.1;
-						DevelopmentTeam = JVS5Q57ZPX;
+						DevelopmentTeam = 4F7DKRYKP6;
 						LastSwiftMigration = 0940;
 					};
 				};
@@ -166,7 +159,6 @@
 				73707E531C01D0F800A569AA /* GameViewController.swift in Sources */,
 				73707E4F1C01D0F800A569AA /* AppDelegate.swift in Sources */,
 				73707E651C02D3F900A569AA /* SCNVector3Extensions.swift in Sources */,
-				23C3FC4420C3DE090033581F /* SCNGeometrySource+Additions.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,14 +293,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				DEVELOPMENT_TEAM = JVS5Q57ZPX;
+				DEVELOPMENT_TEAM = 4F7DKRYKP6;
 				INFOPLIST_FILE = DeformableMesh/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = co.net5.DeformableMesh;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lachlanhurst.DeformableMesh;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "DeformableMesh/DeformableMesh-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
@@ -318,13 +310,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				DEVELOPMENT_TEAM = JVS5Q57ZPX;
+				DEVELOPMENT_TEAM = 4F7DKRYKP6;
 				INFOPLIST_FILE = DeformableMesh/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = co.net5.DeformableMesh;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lachlanhurst.DeformableMesh;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "DeformableMesh/DeformableMesh-Bridging-Header.h";
-				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
+				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 4.0;
 			};
 			name = Release;
